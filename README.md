@@ -73,7 +73,7 @@ fn main() -> anyhow::Result<()> {
     ];
 
     // Update
-    let tracks = tracker.update(detections)?;
+    let tracks = tracker.update(detections);
 
     for t in tracks {
         println!("ID: {}, Box: {:?}", t.track_id, t.tlwh);

@@ -1,8 +1,5 @@
-use crate::utils::geometry;
 use crate::utils::kalman::{CovarianceMatrix, KalmanFilter, MeasurementVector, StateVector};
-use anyhow::Result;
-use nalgebra::SVector;
-use std::collections::VecDeque;
+// use anyhow::Result;
 
 // Define STrack
 /// A Single Track (STrack) representing a tracked object.
@@ -147,11 +144,9 @@ impl STrack {
 pub struct ByteTrack {
     tracked_stracks: Vec<STrack>,
     lost_stracks: Vec<STrack>,
-    removed_stracks: Vec<STrack>,
     frame_id: usize,
     buffer_size: usize,
     track_thresh: f32,
-    track_buffer: usize,
     match_thresh: f32,
     det_thresh: f32, // For splitting detections into high/low
     kalman_filter: KalmanFilter,
@@ -170,11 +165,9 @@ impl ByteTrack {
         Self {
             tracked_stracks: Vec::new(),
             lost_stracks: Vec::new(),
-            removed_stracks: Vec::new(),
             frame_id: 0,
             buffer_size: track_buffer, // Simplified usage
             track_thresh,
-            track_buffer,
             match_thresh,
             det_thresh,
             kalman_filter: KalmanFilter::default(),
@@ -187,17 +180,16 @@ impl ByteTrack {
     ///
     /// * `output_results` - A vector of detections, where each detection is `(TLWH_Box, Score, ClassID)`.
     ///
-    /// # Returns
+    /// Returns
     ///
-    /// * `Result<Vec<STrack>>` - A list of active tracks in the current frame.
-    pub fn update(&mut self, output_results: Vec<([f32; 4], f32, i64)>) -> Result<Vec<STrack>> {
+    /// * `Vec<STrack>` - A list of active tracks in the current frame.
+    pub fn update(&mut self, output_results: Vec<([f32; 4], f32, i64)>) -> Vec<STrack> {
         self.frame_id += 1;
         let mut activated_stracks = Vec::new();
         let mut refind_stracks = Vec::new();
         let mut lost_stracks = Vec::new();
-        let mut removed_stracks = Vec::new();
 
-        let mut detections: Vec<STrack> = output_results
+        let detections: Vec<STrack> = output_results
             .iter()
             .map(|(tlwh, score, cls)| STrack::new(*tlwh, *score, *cls))
             .collect();
@@ -280,7 +272,7 @@ impl ByteTrack {
             }
         }
 
-        let (matches, u_track_second, u_detection_second) =
+        let (matches, u_track_second, _) =
             if r_tracked_stracks.is_empty() || detections_low.is_empty() {
                 (
                     Vec::new(),
@@ -331,9 +323,7 @@ impl ByteTrack {
             if track.state == TrackState::Lost {
                 // If it was already lost and not matched in first round, it stays lost or removed
                 // We need to check if we should remove it
-                if self.frame_id - track.frame_id > self.buffer_size {
-                    removed_stracks.push(track.clone());
-                } else {
+                if self.frame_id - track.frame_id <= self.buffer_size {
                     lost_stracks.push(track.clone());
                 }
             }
@@ -359,7 +349,7 @@ impl ByteTrack {
         }
 
         // Return *tracked* stracks
-        Ok(output_stracks)
+        output_stracks
     }
 
     fn iou_distance(
@@ -484,10 +474,7 @@ impl PyByteTrack {
         &mut self,
         output_results: Vec<([f32; 4], f32, i64)>,
     ) -> PyResult<Vec<(u64, [f32; 4], f32, i64)>> {
-        let tracks = self
-            .inner
-            .update(output_results)
-            .map_err(|e: anyhow::Error| PyRuntimeError::new_err(e.to_string()))?;
+        let tracks = self.inner.update(output_results);
         Ok(tracks
             .into_iter()
             .map(|t| (t.track_id, t.tlwh, t.score, t.class_id))

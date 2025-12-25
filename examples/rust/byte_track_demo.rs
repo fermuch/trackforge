@@ -1,7 +1,6 @@
-use anyhow::Result;
 use trackforge::trackers::byte_track::ByteTrack;
 
-fn main() -> Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize ByteTrack
     // track_thresh = 0.5: Threshold for high confidence detections
     // track_buffer = 30: Frames to keep lost tracks alive
@@ -16,7 +15,7 @@ fn main() -> Result<()> {
     ];
 
     println!("Processing Frame 1...");
-    let tracks_1 = tracker.update(frame_1_detections)?;
+    let tracks_1 = tracker.update(frame_1_detections);
 
     for t in tracks_1 {
         println!(
@@ -32,7 +31,7 @@ fn main() -> Result<()> {
     ];
 
     println!("\nProcessing Frame 2...");
-    let tracks_2 = tracker.update(frame_2_detections)?;
+    let tracks_2 = tracker.update(frame_2_detections);
 
     for t in tracks_2 {
         println!(
