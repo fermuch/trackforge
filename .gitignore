@@ -85,3 +85,6 @@ docs/_build/
 # mypycache
 .mypy_cache/
 .dmypy.json
+
+# cargo advisory db lock file
+~/.cargo/advisory-db..lock
