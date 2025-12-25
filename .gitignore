@@ -88,3 +88,6 @@ docs/_build/
 
 # cargo advisory db lock file
 ~/.cargo/advisory-db..lock
+
+# Codeconv
+lcov.info

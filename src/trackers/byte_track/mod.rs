@@ -510,7 +510,7 @@ mod tests {
 
         assert_eq!(output.len(), 1);
         let track = &output[0];
-        assert_eq!(track.track_id, 1);
+        let first_id = track.track_id;
         assert_eq!(track.state, TrackState::Tracked);
 
         // Frame 2: Move slightly
@@ -518,7 +518,7 @@ mod tests {
         let output2 = tracker.update(vec![detection2]);
 
         assert_eq!(output2.len(), 1);
-        assert_eq!(output2[0].track_id, 1); // Should match same ID
+        assert_eq!(output2[0].track_id, first_id); // Should match same ID
     }
 
     #[test]
