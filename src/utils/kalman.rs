@@ -114,7 +114,7 @@ impl KalmanFilter {
         // For now, assume invertibility for this standard KF setup.
         let inv_innovation_cov = innovation_cov
             .try_inverse()
-            .unwrap_or_else(|| SMatrix::<f32, 4, 4>::identity());
+            .unwrap_or_else(SMatrix::<f32, 4, 4>::identity);
 
         let kalman_gain = covariance * self.update_mat.transpose() * inv_innovation_cov;
         let innovation = measurement - projected_mean;

@@ -1,5 +1,4 @@
 use crate::utils::kalman::{CovarianceMatrix, KalmanFilter, MeasurementVector, StateVector};
-// use anyhow::Result;
 
 // Define STrack
 /// A Single Track (STrack) representing a tracked object.
@@ -367,10 +366,10 @@ impl ByteTrack {
 
         let ious = crate::utils::geometry::iou_batch(&strack_boxes, &det_boxes);
 
-        for i in 0..strack_boxes.len() {
+        for iou_row in ious {
             let mut row = Vec::new();
-            for j in 0..det_boxes.len() {
-                row.push(1.0 - ious[i][j]);
+            for iou in iou_row {
+                row.push(1.0 - iou);
             }
             cost_matrix.push(row);
         }
@@ -422,9 +421,9 @@ impl ByteTrack {
         let mut unmatched_detections = (0..cols).collect::<HashSet<_>>();
 
         let mut costs = Vec::new();
-        for r in 0..rows {
-            for c in 0..cols {
-                costs.push((cost_matrix[r][c], r, c));
+        for (r, row) in cost_matrix.iter().enumerate() {
+            for (c, &cost) in row.iter().enumerate() {
+                costs.push((cost, r, c));
             }
         }
         // sort by cost
@@ -449,9 +448,10 @@ impl ByteTrack {
 }
 
 #[cfg(feature = "python")]
-use pyo3::exceptions::PyRuntimeError;
-#[cfg(feature = "python")]
 use pyo3::prelude::*;
+
+#[cfg(feature = "python")]
+type PyTrackingResult = (u64, [f32; 4], f32, i64);
 
 #[cfg(feature = "python")]
 #[pyclass(name = "ByteTrack")]
@@ -473,7 +473,7 @@ impl PyByteTrack {
     fn update(
         &mut self,
         output_results: Vec<([f32; 4], f32, i64)>,
-    ) -> PyResult<Vec<(u64, [f32; 4], f32, i64)>> {
+    ) -> PyResult<Vec<PyTrackingResult>> {
         let tracks = self.inner.update(output_results);
         Ok(tracks
             .into_iter()
