@@ -70,3 +70,24 @@ docs/_build/
 
 # Pyenv
 .python-version
+
+# weights
+*.pt
+*.onnx
+
+# Videos and Images
+*.mp4
+*.avi
+*.jpg
+*.png
+*.jpeg
+
+# mypycache
+.mypy_cache/
+.dmypy.json
+
+# cargo advisory db lock file
+~/.cargo/advisory-db..lock
+
+# Codeconv
+lcov.info
