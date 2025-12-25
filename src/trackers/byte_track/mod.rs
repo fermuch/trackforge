@@ -481,3 +481,75 @@ impl PyByteTrack {
             .collect())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_strack_init() {
+        let tlwh = [10.0, 10.0, 50.0, 100.0];
+        let score = 0.9;
+        let class_id = 1;
+        let strack = STrack::new(tlwh, score, class_id);
+
+        assert_eq!(strack.tlwh, tlwh);
+        assert_eq!(strack.score, score);
+        assert_eq!(strack.class_id, class_id);
+        assert_eq!(strack.state, TrackState::New);
+        assert!(!strack.is_activated);
+    }
+
+    #[test]
+    fn test_bytetrack_update_simple() {
+        let mut tracker = ByteTrack::new(0.5, 30, 0.8, 0.6);
+
+        // Frame 1: One high confidence detection
+        let detection = ([10.0, 10.0, 50.0, 100.0], 0.9_f32, 0_i64);
+        let output = tracker.update(vec![detection]);
+
+        assert_eq!(output.len(), 1);
+        let track = &output[0];
+        assert_eq!(track.track_id, 1);
+        assert_eq!(track.state, TrackState::Tracked);
+
+        // Frame 2: Move slightly
+        let detection2 = ([15.0, 15.0, 50.0, 100.0], 0.9_f32, 0_i64);
+        let output2 = tracker.update(vec![detection2]);
+
+        assert_eq!(output2.len(), 1);
+        assert_eq!(output2[0].track_id, 1); // Should match same ID
+    }
+
+    #[test]
+    fn test_bytetrack_low_conf_match() {
+        let mut tracker = ByteTrack::new(0.6, 30, 0.8, 0.6);
+        let d1 = ([10.0, 10.0, 50.0, 50.0], 0.9, 0);
+        let out1 = tracker.update(vec![d1]);
+        assert_eq!(out1.len(), 1);
+        let id = out1[0].track_id;
+
+        // Frame 2: Low conf (below track_thresh 0.6, but above implicit low thresh)
+        // Note: Code uses 0.5 as low thresh in matches
+        let d2 = ([12.0, 12.0, 50.0, 50.0], 0.4, 0); // 0.4 < 0.6 but maybe matched?
+                                                     // Wait, ByteTrack hardcoded 0.5 low thresh in `linear_assignment` call for second matching?
+                                                     // In my code: `self.linear_assignment(&dists, 0.5)`
+
+        let output2 = tracker.update(vec![d2]);
+        // If 0.4 < 0.5 (low thresh), it might be ignored if detections are filtered out before matching?
+        // Code: Detections are split. High >= track_thresh. Low is else.
+        // So d2 is low.
+        // Then predict.
+        // Match high -> none.
+        // Match low -> d2 is low. Matches with tracked track.
+        // Only if cost < 0.5. IoU should be high (dist low).
+
+        // Let's verify if 0.4 is kept.
+        // Assuming default logic doesn't drop low confidence completely unless very low?
+        // Standard code usually has a `filter_thresh` or similar. My `update` takes all.
+
+        // Ideally it should match.
+        assert_eq!(output2.len(), 1, "Expected 1 track, got {}", output2.len());
+        assert_eq!(output2[0].track_id, id);
+    }
+}

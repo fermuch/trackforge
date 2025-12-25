@@ -35,3 +35,71 @@ pub fn iou_batch(bboxes1: &[[f32; 4]], bboxes2: &[[f32; 4]]) -> Vec<Vec<f32>> {
     }
     iou_matrix
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tlwh_to_tlbr() {
+        let tlwh = [10.0, 20.0, 30.0, 40.0];
+        let tlbr = tlwh_to_tlbr(&tlwh);
+        assert_eq!(tlbr, [10.0, 20.0, 40.0, 60.0]);
+    }
+
+    #[test]
+    fn test_iou_overlapping() {
+        // box1: 0,0, 10,10 (area 100)
+        // box2: 5,5, 10,10 (area 100)
+        // intersection: 5,5, 10,10 -> w=5, h=5 -> area 25
+        // union: 100 + 100 - 25 = 175
+        // iou: 25 / 175 = 1/7 ~= 0.142857
+
+        let box1 = [0.0, 0.0, 10.0, 10.0];
+        let box2 = [5.0, 5.0, 10.0, 10.0];
+        let val = iou(&box1, &box2);
+        assert!((val - 0.142857).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_iou_no_overlap() {
+        let box1 = [0.0, 0.0, 10.0, 10.0];
+        let box2 = [20.0, 20.0, 10.0, 10.0];
+        let val = iou(&box1, &box2);
+        assert_eq!(val, 0.0);
+    }
+
+    #[test]
+    fn test_iou_contained() {
+        let box1 = [0.0, 0.0, 100.0, 100.0];
+        let box2 = [25.0, 25.0, 50.0, 50.0]; // area 2500
+                                             // intersection is box2 (2500)
+                                             // union is box1 (10000)
+                                             // iou = 0.25
+        let val = iou(&box1, &box2);
+        assert_eq!(val, 0.25);
+    }
+
+    #[test]
+    fn test_iou_batch() {
+        let boxes1 = vec![[0.0, 0.0, 10.0, 10.0], [100.0, 100.0, 10.0, 10.0]];
+        let boxes2 = vec![
+            [0.0, 0.0, 10.0, 10.0],     // Matches box1[0] perfectly
+            [5.0, 5.0, 10.0, 10.0],     // Partially matches box1[0]
+            [200.0, 200.0, 10.0, 10.0], // No match
+        ];
+
+        let ious = iou_batch(&boxes1, &boxes2);
+        assert_eq!(ious.len(), 2);
+        assert_eq!(ious[0].len(), 3);
+        assert_eq!(ious[1].len(), 3);
+
+        assert_eq!(ious[0][0], 1.0);
+        assert!((ious[0][1] - 0.142857).abs() < 1e-4);
+        assert_eq!(ious[0][2], 0.0);
+
+        assert_eq!(ious[1][0], 0.0);
+        assert_eq!(ious[1][1], 0.0);
+        assert_eq!(ious[1][2], 0.0);
+    }
+}

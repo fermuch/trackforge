@@ -131,3 +131,63 @@ impl Default for KalmanFilter {
         Self::new(1.0 / 20.0, 1.0 / 160.0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_kf_initiate() {
+        let kf = KalmanFilter::default();
+        let measurement = MeasurementVector::from_vec(vec![10.0, 20.0, 1.5, 50.0]); // x, y, a, h
+        let (mean, cov) = kf.initiate(&measurement);
+
+        assert_eq!(mean[0], 10.0);
+        assert_eq!(mean[1], 20.0);
+        assert_eq!(mean[2], 1.5);
+        assert_eq!(mean[3], 50.0);
+        assert_eq!(mean[4], 0.0); // Velocity should be initialized to 0
+
+        // Check covariance diagonal elements are positive
+        for i in 0..8 {
+            assert!(cov[(i, i)] > 0.0);
+        }
+    }
+
+    #[test]
+    fn test_kf_predict() {
+        let kf = KalmanFilter::default();
+        let measurement = MeasurementVector::from_vec(vec![0.0, 0.0, 1.0, 10.0]);
+        let (mean, cov) = kf.initiate(&measurement);
+
+        // Predict next step
+        let (pred_mean, pred_cov) = kf.predict(&mean, &cov);
+
+        // Since velocity is 0, predicted position shouldn't change much initially
+        assert_eq!(pred_mean[0], 0.0);
+
+        // Covariance should increase due to motion uncertainty
+        assert!(pred_cov[(0, 0)] > cov[(0, 0)]);
+    }
+
+    #[test]
+    fn test_kf_update() {
+        let kf = KalmanFilter::default();
+        let m1 = MeasurementVector::from_vec(vec![0.0, 0.0, 1.0, 10.0]);
+        let (mean1, cov1) = kf.initiate(&m1);
+
+        // Predict
+        let (mean_pred, cov_pred) = kf.predict(&mean1, &cov1);
+
+        // Update with new measurement moving right
+        let m2 = MeasurementVector::from_vec(vec![10.0, 0.0, 1.0, 10.0]);
+        let (mean_upd, cov_upd) = kf.update(&mean_pred, &cov_pred, &m2);
+
+        // Mean should move towards measurement
+        assert!(mean_upd[0] > 0.0);
+        assert!(mean_upd[0] < 10.0); // Typically somewhere between due to gain
+
+        // Covariance should generally decrease or be stable relative to prediction
+        assert!(cov_upd[(0, 0)] < cov_pred[(0, 0)]);
+    }
+}
