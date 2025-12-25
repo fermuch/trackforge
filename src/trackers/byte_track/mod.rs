@@ -1,3 +1,5 @@
+#![doc = include_str!("README.md")]
+
 use crate::utils::kalman::{CovarianceMatrix, KalmanFilter, MeasurementVector, StateVector};
 
 // Define STrack
