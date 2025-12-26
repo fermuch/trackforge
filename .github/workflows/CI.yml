@@ -133,11 +133,12 @@ jobs:
         with:
           pattern: wheels-*
           merge-multiple: true
+          path: dist
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         with:
           command: upload
-          args: --skip-existing *
+          args: --skip-existing dist/*
       - name: Publish to Crates.io
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
