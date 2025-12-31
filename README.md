@@ -59,7 +59,7 @@ Add `trackforge` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-trackforge = "0.1.5" # Check crates.io for latest version
+trackforge = "0.1.6" # Check crates.io for latest version
 ```
 
 ## Usage
