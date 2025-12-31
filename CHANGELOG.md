@@ -2,20 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.5] - 2025-12-30
+## [0.1.6] - 2025-12-31
 
 ### 🚀 Features
 
 - ✨ add new asset project logos for dark & light themes  by @onuralpszr
 - ✨ add initial documentation and deployment workflow for Trackforge  by @onuralpszr
+- ✨ add SORT tracker implementation with Python bindings
 
 ### 🐛 Bug Fixes
 
 - *(docs)* 🐞 update logo path and size to show proper logo by @onuralpszr
 
+### 📚 Documentation
+
+- 📝 add Python tracking examples with YOLO and RT-DETR
+- 📝 update roadmap to mark SORT as completed
+
 ### ⚙️ Miscellaneous Tasks
 
 - 👷 change doc action use uv and check in PRs #19 by @onuralpszr
+- 📝 update changelog for v0.1.5 release by @onuralpszr
 ## [0.1.4] - 2025-12-26
 
 ### ⚙️ Miscellaneous Tasks
