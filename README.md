@@ -40,7 +40,7 @@
 - [ ] Norfair — Lightweight distance-based tracking
 
 ### Appearance-Based (Re-ID)
-- [ ] DeepSORT — SORT + appearance embeddings
+- [x] DeepSORT — SORT + appearance embeddings
 - [ ] StrongSORT — Improved DeepSORT with stronger Re-ID
 - [ ] StrongSORT++ — StrongSORT with camera motion compensation
 
@@ -56,7 +56,6 @@
 - [ ] OC-SORT — Observation-centric SORT
 - [ ] TrackFormer — Transformer-based MOT
 - [ ] MOTR — End-to-end transformer tracking
-
 
 ## GPU Support & Architecture
 
@@ -87,31 +86,48 @@ trackforge = "0.1.6" # Check crates.io for latest version
 
 ### 🐍 Python
 
+#### ByteTrack
+
 ```python
 import trackforge
 
-# Initialize ByteTrack
-# track_thresh: High confidence detection threshold (e.g., 0.5)
-# track_buffer: Frames to keep lost tracks alive (e.g., 30)
-# match_thresh: IoU matching threshold (e.g., 0.8)
-# det_thresh: Initialization threshold (e.g., 0.6)
+# (tlwh, score, class_id)
+detections = [([100.0, 100.0, 50.0, 100.0], 0.9, 0)]
+
 tracker = trackforge.ByteTrack(0.5, 30, 0.8, 0.6)
-
-# Detections: List of (TLWH_Box, Score, ClassID)
-detections = [
-    ([100.0, 100.0, 50.0, 100.0], 0.9, 0),
-    ([200.0, 200.0, 60.0, 120.0], 0.85, 0)
-]
-
-# Update tracker
 tracks = tracker.update(detections)
 
 for t in tracks:
-    # t is (track_id, tlwh_box, score, class_id)
     print(f"ID: {t[0]}, Box: {t[1]}")
 ```
 
+#### DeepSORT
+
+DeepSORT requires appearance embeddings (re-id features) alongside detection boxes.
+
+```python
+import trackforge
+import numpy as np
+
+# detections: [(tlwh, score, class_id), ...]
+detections = [([100.0, 100.0, 50.0, 100.0], 0.9, 0)]
+
+# embeddings: List of feature vectors (float32 list) corresponding to detections
+embeddings = [[0.1, 0.2, 0.3, ...]] # Example embedding vector
+
+tracker = trackforge.DeepSort(max_age=30, n_init=3, max_iou_distance=0.7, max_cosine_distance=0.2, nn_budget=100)
+tracks = tracker.update(detections, embeddings)
+
+for t in tracks:
+		# output adds confidence: (track_id, tlwh, confidence, class_id)
+    print(f"ID: {t.track_id}, Box: {t.tlwh}")
+```
+
+See `examples/python/deepsort_demo.py` for a full example using `ultralytics` YOLO and `torchvision` ResNet.
+
 ### 🦀 Rust
+
+#### ByteTrack
 
 ```rust
 use trackforge::trackers::byte_track::ByteTrack;
@@ -133,6 +149,24 @@ fn main() -> anyhow::Result<()> {
     }
     Ok(())
 }
+```
+
+#### DeepSORT
+
+See `examples/deepsort_ort.rs` for a full example integrating with `ort` (ONNX Runtime) for Re-ID and `usls` for detection.
+
+```rust
+// Minimal setup
+use trackforge::trackers::deepsort::DeepSort;
+use trackforge::traits::AppearanceExtractor;
+
+struct MyExtractor;
+impl AppearanceExtractor for MyExtractor {
+    // Implement extract ...
+}
+
+let extractor = MyExtractor;
+let mut tracker = DeepSort::new(extractor, ...);
 ```
 
 ## Development

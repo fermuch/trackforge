@@ -135,6 +135,51 @@ impl KalmanFilter {
 
         (new_mean, new_covariance)
     }
+
+    /// Calculate the Mahalanobis distance between the track state and measurements.
+    ///
+    /// # Arguments
+    /// * `mean` - The current state mean.
+    /// * `covariance` - The current state covariance.
+    /// * `measurements` - A list of measurements to compare against.
+    /// * `only_position` - If true, only use the position (x, y) components (not implemented).
+    ///   For this implementation, we use the full measurement vector [x, y, a, h].
+    ///
+    /// # Returns
+    /// A vector of distances, one for each measurement.
+    pub fn gating_distance(
+        &self,
+        mean: &StateVector,
+        covariance: &CovarianceMatrix,
+        measurements: &[MeasurementVector],
+    ) -> Vec<f32> {
+        let projected_mean = self.update_mat * mean;
+        let projected_cov = self.update_mat * covariance * self.update_mat.transpose();
+
+        let std = [
+            self.std_weight_position * mean[3],
+            self.std_weight_position * mean[3],
+            1e-1,
+            self.std_weight_position * mean[3],
+        ];
+        let mut diag = SMatrix::<f32, 4, 4>::zeros();
+        for i in 0..4 {
+            diag[(i, i)] = std[i].powi(2);
+        }
+
+        let innovation_cov = projected_cov + diag;
+        let inv_innovation_cov = innovation_cov
+            .try_inverse()
+            .unwrap_or_else(SMatrix::<f32, 4, 4>::identity);
+
+        measurements
+            .iter()
+            .map(|measurement| {
+                let diff = measurement - projected_mean;
+                (diff.transpose() * inv_innovation_cov * diff)[(0, 0)]
+            })
+            .collect()
+    }
 }
 
 impl Default for KalmanFilter {
@@ -200,5 +245,51 @@ mod tests {
 
         // Covariance should generally decrease or be stable relative to prediction
         assert!(cov_upd[(0, 0)] < cov_pred[(0, 0)]);
+    }
+
+    #[test]
+    fn test_kf_gating_distance() {
+        let kf = KalmanFilter::default();
+        let measurement = MeasurementVector::from_vec(vec![100.0, 100.0, 1.0, 50.0]);
+        let (mean, cov) = kf.initiate(&measurement);
+
+        // Test with same measurement - should have low distance
+        let same = vec![measurement];
+        let distances = kf.gating_distance(&mean, &cov, &same);
+        assert_eq!(distances.len(), 1);
+        assert!(
+            distances[0] < 1.0,
+            "Same measurement should have low gating distance"
+        );
+
+        // Test with far measurement - should have high distance
+        let far = vec![MeasurementVector::from_vec(vec![500.0, 500.0, 2.0, 100.0])];
+        let far_distances = kf.gating_distance(&mean, &cov, &far);
+        assert!(
+            far_distances[0] > distances[0],
+            "Far measurement should have higher distance"
+        );
+
+        // Test with multiple measurements
+        let multiple = vec![
+            MeasurementVector::from_vec(vec![100.0, 100.0, 1.0, 50.0]),
+            MeasurementVector::from_vec(vec![110.0, 110.0, 1.0, 50.0]),
+            MeasurementVector::from_vec(vec![200.0, 200.0, 1.0, 50.0]),
+        ];
+        let multi_distances = kf.gating_distance(&mean, &cov, &multiple);
+        assert_eq!(multi_distances.len(), 3);
+        // First should be closest, last should be furthest
+        assert!(multi_distances[0] < multi_distances[2]);
+    }
+
+    #[test]
+    fn test_kf_new_custom_weights() {
+        // Test custom weight parameters
+        let kf = KalmanFilter::new(0.1, 0.05);
+        let measurement = MeasurementVector::from_vec(vec![50.0, 50.0, 1.0, 25.0]);
+        let (mean, cov) = kf.initiate(&measurement);
+
+        assert_eq!(mean[0], 50.0);
+        assert!(cov[(0, 0)] > 0.0);
     }
 }
