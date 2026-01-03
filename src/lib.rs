@@ -44,5 +44,7 @@ use pyo3::prelude::*;
 fn trackforge(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<trackers::byte_track::PyByteTrack>()?;
     m.add_class::<trackers::sort::PySort>()?;
+    m.add_class::<trackers::deepsort::python::PyDeepSort>()?;
+    m.add_class::<trackers::deepsort::python::PyDeepSortTrack>()?;
     Ok(())
 }
