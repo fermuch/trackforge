@@ -31,6 +31,10 @@ name = "byte_track_demo"
 path = "examples/rust/byte_track_demo.rs"
 
 [dev-dependencies]
+ndarray = "0.17.1"
+opencv = "0.98.0"
+ort = { version = "2.0.0-rc.10", features = ["ndarray"] }
+usls = { version = "0.1.10", features = ["rtdetr"] }
 # Testing dependencies
 
 [profile.release]

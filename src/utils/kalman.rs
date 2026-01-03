@@ -135,6 +135,51 @@ impl KalmanFilter {
 
         (new_mean, new_covariance)
     }
+
+    /// Calculate the Mahalanobis distance between the track state and measurements.
+    ///
+    /// # Arguments
+    /// * `mean` - The current state mean.
+    /// * `covariance` - The current state covariance.
+    /// * `measurements` - A list of measurements to compare against.
+    /// * `only_position` - If true, only use the position (x, y) components (not implemented here, simpler KF assumes full measurement).
+    ///                     For this implementation, we use the full measurement vector [x, y, a, h].
+    ///
+    /// # Returns
+    /// A vector of distances, one for each measurement.
+    pub fn gating_distance(
+        &self,
+        mean: &StateVector,
+        covariance: &CovarianceMatrix,
+        measurements: &[MeasurementVector],
+    ) -> Vec<f32> {
+        let projected_mean = self.update_mat * mean;
+        let projected_cov = self.update_mat * covariance * self.update_mat.transpose();
+
+        let std = [
+            self.std_weight_position * mean[3],
+            self.std_weight_position * mean[3],
+            1e-1,
+            self.std_weight_position * mean[3],
+        ];
+        let mut diag = SMatrix::<f32, 4, 4>::zeros();
+        for i in 0..4 {
+            diag[(i, i)] = std[i].powi(2);
+        }
+
+        let innovation_cov = projected_cov + diag;
+        let inv_innovation_cov = innovation_cov
+            .try_inverse()
+            .unwrap_or_else(SMatrix::<f32, 4, 4>::identity);
+
+        measurements
+            .iter()
+            .map(|measurement| {
+                let diff = measurement - projected_mean;
+                (diff.transpose() * inv_innovation_cov * diff)[(0, 0)]
+            })
+            .collect()
+    }
 }
 
 impl Default for KalmanFilter {

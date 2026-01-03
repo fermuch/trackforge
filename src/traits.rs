@@ -16,7 +16,7 @@ pub trait AppearanceExtractor {
     /// # Returns
     /// A vector of feature vectors (embeddings), one for each bounding box.
     fn extract(
-        &self,
+        &mut self,
         image: &DynamicImage,
         bboxes: &[BoundingBox],
     ) -> Result<Vec<Vec<f32>>, Box<dyn Error>>;
