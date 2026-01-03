@@ -343,3 +343,188 @@ fn min_cost_matching(
         unmatched_cols.into_iter().collect(),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::trackers::deepsort::nn_matching::Metric;
+    use crate::types::BoundingBox;
+
+    fn create_tracker() -> DeepSortTracker {
+        let metric = NearestNeighborDistanceMetric::new(Metric::Cosine, 0.3, Some(100));
+        DeepSortTracker::new(metric, 30, 3, 0.7)
+    }
+
+    #[test]
+    fn test_tracker_initialization() {
+        let tracker = create_tracker();
+        assert_eq!(tracker.tracks.len(), 0);
+        assert_eq!(tracker.max_age, 30);
+        assert_eq!(tracker.n_init, 3);
+    }
+
+    #[test]
+    fn test_initiate_track() {
+        let mut tracker = create_tracker();
+
+        tracker.initiate_track(&[100.0, 100.0, 50.0, 100.0], 0.9, 0, vec![1.0; 128]);
+
+        assert_eq!(tracker.tracks.len(), 1);
+        assert!(!tracker.tracks[0].is_confirmed()); // Should be tentative
+        assert!(tracker.tracks[0].is_tentative());
+    }
+
+    #[test]
+    fn test_predict() {
+        let mut tracker = create_tracker();
+        tracker.initiate_track(&[100.0, 100.0, 50.0, 100.0], 0.9, 0, vec![1.0; 128]);
+
+        let initial_age = tracker.tracks[0].age;
+        tracker.predict();
+
+        assert_eq!(tracker.tracks[0].age, initial_age + 1);
+        assert_eq!(tracker.tracks[0].time_since_update, 1);
+    }
+
+    #[test]
+    fn test_track_lifecycle_confirmation() {
+        let mut tracker = create_tracker();
+
+        let det = (BoundingBox::new(100.0, 100.0, 50.0, 100.0), 0.9, 0i64);
+        let emb = vec![1.0; 128];
+
+        // Frame 1: Create track
+        tracker.predict();
+        tracker.update(&[det], &[emb.clone()]);
+        assert_eq!(tracker.tracks.len(), 1);
+        assert!(!tracker.tracks[0].is_confirmed());
+
+        // Frame 2: Match
+        tracker.predict();
+        tracker.update(&[det], &[emb.clone()]);
+        assert!(!tracker.tracks[0].is_confirmed());
+
+        // Frame 3: Confirmed (n_init = 3)
+        tracker.predict();
+        tracker.update(&[det], &[emb.clone()]);
+        assert!(tracker.tracks[0].is_confirmed());
+    }
+
+    #[test]
+    fn test_track_deletion_on_miss() {
+        let mut tracker = create_tracker();
+
+        let det = (BoundingBox::new(100.0, 100.0, 50.0, 100.0), 0.9, 0i64);
+        let emb = vec![1.0; 128];
+
+        // Create a tentative track
+        tracker.predict();
+        tracker.update(&[det], &[emb]);
+        assert_eq!(tracker.tracks.len(), 1);
+
+        // Miss it - tentative tracks get deleted on first miss
+        tracker.predict();
+        tracker.update(&[], &[]);
+
+        // Track should be deleted
+        assert_eq!(tracker.tracks.len(), 0);
+    }
+
+    #[test]
+    fn test_multiple_detections() {
+        let mut tracker = create_tracker();
+
+        let dets = vec![
+            (BoundingBox::new(100.0, 100.0, 50.0, 100.0), 0.9, 0i64),
+            (BoundingBox::new(300.0, 300.0, 50.0, 100.0), 0.85, 0i64),
+        ];
+        let embs = vec![vec![1.0; 128], vec![0.0; 128]];
+
+        tracker.predict();
+        tracker.update(&dets, &embs);
+
+        assert_eq!(tracker.tracks.len(), 2);
+    }
+
+    #[test]
+    fn test_min_cost_matching_empty() {
+        let (matches, unmatched_rows, unmatched_cols) = min_cost_matching(&[], 0.5);
+        assert!(matches.is_empty());
+        assert!(unmatched_rows.is_empty());
+        assert!(unmatched_cols.is_empty());
+    }
+
+    #[test]
+    fn test_min_cost_matching_simple() {
+        // Simple 2x2 cost matrix
+        let cost_matrix = vec![vec![0.1, 0.9], vec![0.8, 0.2]];
+
+        let (matches, unmatched_rows, unmatched_cols) = min_cost_matching(&cost_matrix, 0.5);
+
+        // Should match (0,0) and (1,1) due to low costs
+        assert_eq!(matches.len(), 2);
+        assert!(matches.contains(&(0, 0)));
+        assert!(matches.contains(&(1, 1)));
+        assert!(unmatched_rows.is_empty());
+        assert!(unmatched_cols.is_empty());
+    }
+
+    #[test]
+    fn test_min_cost_matching_threshold() {
+        // All costs above threshold
+        let cost_matrix = vec![vec![0.9, 0.9], vec![0.9, 0.9]];
+
+        let (matches, unmatched_rows, unmatched_cols) = min_cost_matching(&cost_matrix, 0.5);
+
+        // No matches should be made
+        assert!(matches.is_empty());
+        assert_eq!(unmatched_rows.len(), 2);
+        assert_eq!(unmatched_cols.len(), 2);
+    }
+
+    #[test]
+    fn test_min_cost_matching_asymmetric() {
+        // More rows than cols
+        let cost_matrix = vec![vec![0.1], vec![0.2], vec![0.3]];
+
+        let (matches, unmatched_rows, unmatched_cols) = min_cost_matching(&cost_matrix, 0.5);
+
+        // Only one match possible
+        assert_eq!(matches.len(), 1);
+        assert_eq!(unmatched_rows.len(), 2);
+        assert!(unmatched_cols.is_empty());
+    }
+
+    #[test]
+    fn test_update_empty_detections() {
+        let mut tracker = create_tracker();
+
+        // No detections
+        tracker.predict();
+        tracker.update(&[], &[]);
+
+        assert_eq!(tracker.tracks.len(), 0);
+    }
+
+    #[test]
+    fn test_track_id_uniqueness() {
+        let mut tracker = create_tracker();
+
+        let det1 = (BoundingBox::new(100.0, 100.0, 50.0, 100.0), 0.9, 0i64);
+        let det2 = (BoundingBox::new(300.0, 300.0, 50.0, 100.0), 0.9, 0i64);
+        let emb = vec![1.0; 128];
+
+        tracker.predict();
+        tracker.update(&[det1], &[emb.clone()]);
+        let id1 = tracker.tracks[0].track_id;
+        assert!(id1 > 0); // ID should be positive
+
+        tracker.predict();
+        tracker.update(&[det1, det2], &[emb.clone(), vec![0.0; 128]]);
+
+        // Check IDs are unique
+        let ids: Vec<u64> = tracker.tracks.iter().map(|t| t.track_id).collect();
+        let unique_ids: HashSet<u64> = ids.iter().cloned().collect();
+        assert_eq!(ids.len(), unique_ids.len());
+    }
+}

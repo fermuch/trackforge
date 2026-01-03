@@ -163,6 +163,30 @@ mod tests {
     }
 
     #[test]
+    fn test_cosine_parallel() {
+        // Parallel vectors should have distance ~0
+        let a = vec![1.0, 1.0];
+        let b = vec![2.0, 2.0]; // Same direction, different magnitude
+        assert!(cosine_distance(&a, &b) < 0.01);
+    }
+
+    #[test]
+    fn test_cosine_opposite() {
+        // Opposite vectors should have distance ~2
+        let a = vec![1.0, 0.0];
+        let b = vec![-1.0, 0.0];
+        assert!((cosine_distance(&a, &b) - 2.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cosine_zero_norm() {
+        // Zero vector should return 1.0 (no similarity)
+        let a = vec![0.0, 0.0];
+        let b = vec![1.0, 1.0];
+        assert!((cosine_distance(&a, &b) - 1.0).abs() < 0.01);
+    }
+
+    #[test]
     fn test_metric_budget() {
         let mut metric = NearestNeighborDistanceMetric::new(Metric::Euclidean, 0.5, Some(2));
 
@@ -173,5 +197,98 @@ mod tests {
         assert_eq!(samples.len(), 2);
         assert_eq!(samples[0], vec![2.0]);
         assert_eq!(samples[1], vec![3.0]);
+    }
+
+    #[test]
+    fn test_metric_no_budget() {
+        // Test without budget limit
+        let mut metric = NearestNeighborDistanceMetric::new(Metric::Cosine, 0.3, None);
+
+        // Add many samples
+        metric.partial_fit(
+            &[
+                (1, vec![1.0, 0.0]),
+                (1, vec![0.9, 0.1]),
+                (1, vec![0.8, 0.2]),
+                (1, vec![0.7, 0.3]),
+            ],
+            &[1],
+        );
+
+        let samples = metric.samples.get(&1).unwrap();
+        assert_eq!(samples.len(), 4); // All samples kept
+    }
+
+    #[test]
+    fn test_metric_inactive_removal() {
+        let mut metric = NearestNeighborDistanceMetric::new(Metric::Euclidean, 0.5, Some(10));
+
+        // Add samples for tracks 1 and 2
+        metric.partial_fit(&[(1, vec![1.0]), (2, vec![2.0])], &[1, 2]);
+        assert!(metric.samples.contains_key(&1));
+        assert!(metric.samples.contains_key(&2));
+
+        // Now only track 1 is active - track 2 should be removed
+        metric.partial_fit(&[(1, vec![1.5])], &[1]);
+        assert!(metric.samples.contains_key(&1));
+        assert!(!metric.samples.contains_key(&2));
+    }
+
+    #[test]
+    fn test_distance_matrix() {
+        let mut metric = NearestNeighborDistanceMetric::new(Metric::Euclidean, 0.5, Some(10));
+
+        // Add samples for track 1
+        metric.partial_fit(&[(1, vec![0.0, 0.0])], &[1]);
+
+        // Compute distances to new features
+        let features = vec![vec![0.0, 0.0], vec![3.0, 4.0]]; // distances: 0 and 5
+        let cost_matrix = metric.distance(&features, &[1]);
+
+        assert_eq!(cost_matrix.len(), 1); // 1 target
+        assert_eq!(cost_matrix[0].len(), 2); // 2 features
+        assert!(cost_matrix[0][0] < 0.01); // Same point
+        assert!((cost_matrix[0][1] - 5.0).abs() < 0.01); // (3,4) distance
+    }
+
+    #[test]
+    fn test_distance_no_samples() {
+        let metric = NearestNeighborDistanceMetric::new(Metric::Euclidean, 0.5, Some(10));
+
+        // Track 1 has no samples
+        let features = vec![vec![0.0, 0.0]];
+        let cost_matrix = metric.distance(&features, &[1]);
+
+        // Should return MAX distance for unknown track
+        assert_eq!(cost_matrix.len(), 1);
+        assert_eq!(cost_matrix[0][0], f32::MAX);
+    }
+
+    #[test]
+    fn test_matching_threshold() {
+        let metric = NearestNeighborDistanceMetric::new(Metric::Cosine, 0.25, Some(10));
+        assert!((metric.matching_threshold() - 0.25).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_min_distance_multiple_samples() {
+        let mut metric = NearestNeighborDistanceMetric::new(Metric::Euclidean, 0.5, Some(10));
+
+        // Add multiple samples for track 1
+        metric.partial_fit(
+            &[
+                (1, vec![0.0, 0.0]),
+                (1, vec![10.0, 0.0]),
+                (1, vec![5.0, 0.0]),
+            ],
+            &[1],
+        );
+
+        // Feature at (1, 0) - closest to (0, 0)
+        let features = vec![vec![1.0, 0.0]];
+        let cost_matrix = metric.distance(&features, &[1]);
+
+        // Min distance should be 1.0 (to origin sample)
+        assert!((cost_matrix[0][0] - 1.0).abs() < 0.01);
     }
 }

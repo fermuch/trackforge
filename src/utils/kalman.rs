@@ -246,4 +246,50 @@ mod tests {
         // Covariance should generally decrease or be stable relative to prediction
         assert!(cov_upd[(0, 0)] < cov_pred[(0, 0)]);
     }
+
+    #[test]
+    fn test_kf_gating_distance() {
+        let kf = KalmanFilter::default();
+        let measurement = MeasurementVector::from_vec(vec![100.0, 100.0, 1.0, 50.0]);
+        let (mean, cov) = kf.initiate(&measurement);
+
+        // Test with same measurement - should have low distance
+        let same = vec![measurement];
+        let distances = kf.gating_distance(&mean, &cov, &same);
+        assert_eq!(distances.len(), 1);
+        assert!(
+            distances[0] < 1.0,
+            "Same measurement should have low gating distance"
+        );
+
+        // Test with far measurement - should have high distance
+        let far = vec![MeasurementVector::from_vec(vec![500.0, 500.0, 2.0, 100.0])];
+        let far_distances = kf.gating_distance(&mean, &cov, &far);
+        assert!(
+            far_distances[0] > distances[0],
+            "Far measurement should have higher distance"
+        );
+
+        // Test with multiple measurements
+        let multiple = vec![
+            MeasurementVector::from_vec(vec![100.0, 100.0, 1.0, 50.0]),
+            MeasurementVector::from_vec(vec![110.0, 110.0, 1.0, 50.0]),
+            MeasurementVector::from_vec(vec![200.0, 200.0, 1.0, 50.0]),
+        ];
+        let multi_distances = kf.gating_distance(&mean, &cov, &multiple);
+        assert_eq!(multi_distances.len(), 3);
+        // First should be closest, last should be furthest
+        assert!(multi_distances[0] < multi_distances[2]);
+    }
+
+    #[test]
+    fn test_kf_new_custom_weights() {
+        // Test custom weight parameters
+        let kf = KalmanFilter::new(0.1, 0.05);
+        let measurement = MeasurementVector::from_vec(vec![50.0, 50.0, 1.0, 25.0]);
+        let (mean, cov) = kf.initiate(&measurement);
+
+        assert_eq!(mean[0], 50.0);
+        assert!(cov[(0, 0)] > 0.0);
+    }
 }
