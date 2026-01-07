@@ -1,3 +1,7 @@
+//! DeepSORT (Simple Online and Realtime Tracking with a Deep Association Metric) implementation.
+//!
+//! This module provides a DeepSORT tracker that uses appearance features for more robust tracking.
+
 mod nn_matching;
 mod track;
 mod tracker;

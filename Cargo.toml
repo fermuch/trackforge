@@ -1,6 +1,6 @@
 [package]
 name = "trackforge"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2024"
 description = "A unified, high-performance computer vision tracking library."
 rust-version = "1.85"
@@ -8,6 +8,8 @@ license = "MIT"
 readme = "README.md"
 repository = "https://github.com/onuralpszr/trackforge"
 homepage = "https://github.com/onuralpszr/trackforge"
+authors = ["Onuralp Sezer <thunderbirdtr@gmail.com>"]
+documentation = "https://docs.rs/trackforge"
 keywords = ["computer-vision", "tracking", "bytetrack", "kalman-filter"]
 categories = ["computer-vision", "science"]
 

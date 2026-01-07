@@ -69,6 +69,14 @@ impl KalmanFilter {
         (mean, covariance)
     }
 
+    /// Predict the next state of the Kalman Filter.
+    ///
+    /// # Arguments
+    /// * `mean` - The current state mean vector.
+    /// * `covariance` - The current state covariance matrix.
+    ///
+    /// # Returns
+    /// A tuple containing the predicted Mean vector and Covariance matrix.
     pub fn predict(
         &self,
         mean: &StateVector,
@@ -99,6 +107,15 @@ impl KalmanFilter {
         (mean, covariance)
     }
 
+    /// Update the Kalman Filter state with a new measurement.
+    ///
+    /// # Arguments
+    /// * `mean` - The predicted state mean vector.
+    /// * `covariance` - The predicted state covariance matrix.
+    /// * `measurement` - The new measurement vector `[x, y, a, h]`.
+    ///
+    /// # Returns
+    /// A tuple containing the updated Mean vector and Covariance matrix.
     pub fn update(
         &self,
         mean: &StateVector,

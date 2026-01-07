@@ -1,3 +1,8 @@
+/// Calculate Intersection over Union (IoU) between two bounding boxes.
+///
+/// # Arguments
+/// * `box1` - First bounding box in TLWH format.
+/// * `box2` - Second bounding box in TLWH format.
 pub fn iou(box1: &[f32; 4], box2: &[f32; 4]) -> f32 {
     let box1_tlbr = tlwh_to_tlbr(box1);
     let box2_tlbr = tlwh_to_tlbr(box2);
@@ -22,10 +27,14 @@ pub fn iou(box1: &[f32; 4], box2: &[f32; 4]) -> f32 {
     inter_area / union_area
 }
 
+/// Convert a bounding box from TLWH (Top-Left-Width-Height) to TLBR (Top-Left-Bottom-Right) format.
 pub fn tlwh_to_tlbr(tlwh: &[f32; 4]) -> [f32; 4] {
     [tlwh[0], tlwh[1], tlwh[0] + tlwh[2], tlwh[1] + tlwh[3]]
 }
 
+/// Calculate IoU matrix between two lists of bounding boxes.
+///
+/// Returns a 2D vector where `result[i][j]` is the IoU between `bboxes1[i]` and `bboxes2[j]`.
 pub fn iou_batch(bboxes1: &[[f32; 4]], bboxes2: &[[f32; 4]]) -> Vec<Vec<f32>> {
     let mut iou_matrix = vec![vec![0.0; bboxes2.len()]; bboxes1.len()];
     for (i, box1) in bboxes1.iter().enumerate() {

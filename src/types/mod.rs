@@ -1,3 +1,7 @@
+//! Common types used across the Trackforge library.
+//!
+//! This module defines fundamental structures like `BoundingBox`.
+
 /// Represents a bounding box in 2D space.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BoundingBox {

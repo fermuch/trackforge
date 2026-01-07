@@ -2,22 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.7] - 2026-01-07
+
+### 🚀 Features
+
+- *(tracker)* ✨ add Deep SORT tracker implementation- Implement NearestNeighborDistanceMetric for cosine/euclidean matching- Add cascade matching with appearance and IoU distance- Implement track lifecycle (tentative, confirmed, deleted states)- Add Kalman filter extensions for Deep SORT state management- Include comprehensive documentation and examples by @onuralpszr
+- *(python)* 🐍 add Python bindings for Deep SORT tracker by @onuralpszr
+- ✨ add Deep SORT tracker with Python bindings #21 by @onuralpszr
+
+### 🐛 Bug Fixes
+
+- *(clippy)* 🔧 fix clippy lint errors by @onuralpszr
+- *(clippy)* 🔧 fix remaining clippy lint errors by @onuralpszr
+- *(ci)* 🔧 remove opencv/ort from dev-dependencies by @onuralpszr
+- *(ci)* 🔧 gate advanced example dependencies behind feature flag by @onuralpszr
+
+### 🚜 Refactor
+
+- *(python)* 📁 move type stubs to python/ directory by @onuralpszr
+
+### 📚 Documentation
+
+- *(examples)* 📝 add Deep SORT Python demo with YOLO by @onuralpszr
+- 📝 update documentation for Deep SORT tracker by @onuralpszr
+- *(examples)* 📝 add Rust Deep SORT examples by @onuralpszr
+- 📝 add better TODO section for trackers by @onuralpszr
+- 📝 add msrv badge to readme by @onuralpszr
+
+### 🧪 Testing
+
+- ✅ add comprehensive unit tests for Deep SORT by @onuralpszr
+- ✅ add more tracker tests for improved coverage by @onuralpszr
 ## [0.1.6] - 2025-12-31
+
+### 🚀 Features
+
+- ✨ add SORT tracker implementation with Python bindings by @onuralpszr
+
+### 📚 Documentation
+
+- 📝 add Python tracking examples with YOLO and RT-DETR by @onuralpszr
+- 📝 update roadmap to mark SORT as completed by @onuralpszr
+## [0.1.5] - 2025-12-30
 
 ### 🚀 Features
 
 - ✨ add new asset project logos for dark & light themes  by @onuralpszr
 - ✨ add initial documentation and deployment workflow for Trackforge  by @onuralpszr
-- ✨ add SORT tracker implementation with Python bindings
 
 ### 🐛 Bug Fixes
 
 - *(docs)* 🐞 update logo path and size to show proper logo by @onuralpszr
-
-### 📚 Documentation
-
-- 📝 add Python tracking examples with YOLO and RT-DETR
-- 📝 update roadmap to mark SORT as completed
 
 ### ⚙️ Miscellaneous Tasks
 

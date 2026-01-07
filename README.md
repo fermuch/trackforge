@@ -17,6 +17,9 @@
 [![Security audit](https://github.com/onuralpszr/trackforge/actions/workflows/security-audit.yml/badge.svg)](https://github.com/onuralpszr/trackforge/actions/workflows/security-audit.yml)
 ![Crates.io MSRV](https://img.shields.io/crates/msrv/trackforge)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/onuralpszr/trackforge.svg?style=flat&logo=github)](https://github.com/onuralpszr/trackforge/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/onuralpszr/trackforge.svg?style=flat&logo=github)](https://github.com/onuralpszr/trackforge/network)
+[![Crates.io Downloads](https://img.shields.io/crates/d/trackforge)](https://crates.io/crates/trackforge)
 
 
 
