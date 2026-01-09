@@ -26,7 +26,7 @@
 > [!IMPORTANT]
 > **This project is currently under active development.** APIs and features are subject to change.
 
-**Trackforge** is a unified, high-performance computer vision tracking library, implemented in Rust and exposed as a Python package. It provides state-of-the-art tracking algorithms like **ByteTrack**, optimized for speed and ease of use in both Rust and Python environments.
+**Trackforge** is a unified, high-performance computer vision tracking library, implemented in Rust and exposed as a Python package. It provides state-of-the-art tracking algorithms like **ByteTrack**,**DeepSORT** optimized for speed and ease of use in both Rust and Python environments.
 
 ## Features
 
