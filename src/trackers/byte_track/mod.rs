@@ -365,15 +365,10 @@ impl ByteTrack {
         // Also remove duplicates if any?
         // Basic unique check or simple assigment is fine for now.
 
-        // Output
-        let mut output_stracks = Vec::new();
-        for track in &self.tracked_stracks {
-            if track.is_activated {
-                output_stracks.push(track.clone());
-            }
-        }
+        // Output all current tracks
+        let mut output_stracks = self.tracked_stracks.clone();
+        output_stracks.extend(self.lost_stracks.iter().cloned());
 
-        // Return *tracked* stracks
         output_stracks
     }
 
@@ -392,10 +387,22 @@ impl ByteTrack {
 
         let ious = crate::utils::geometry::iou_batch(&strack_boxes, &det_boxes);
 
-        for iou_row in ious {
+        for (i, iou_row) in ious.iter().enumerate() {
             let mut row = Vec::new();
-            for iou in iou_row {
-                row.push(1.0 - iou);
+            let track_class = stracks[i].class_id;
+
+            for (j, iou) in iou_row.iter().enumerate() {
+                let det_class = detections[j].class_id;
+
+                if track_class != det_class {
+                    // If classes differ, set cost to 1.0 (IoU 0).
+                    // This ensures the cost > match_thresh (usually 0.8),
+                    // effectively preventing matching between different classes.
+                    row.push(1.0);
+                } else {
+                    // standard cost
+                    row.push(1.0 - iou);
+                }
             }
             cost_matrix.push(row);
         }
@@ -604,7 +611,9 @@ mod tests {
         ]);
         assert_eq!(out.len(), 2);
         assert_eq!(out[0].class_id, 0);
+        assert_eq!(out[0].state, TrackState::Tracked);
         assert_eq!(out[1].class_id, 1);
+        assert_eq!(out[1].state, TrackState::Tracked);
     }
 
     #[test]
@@ -617,5 +626,8 @@ mod tests {
         let out2 = tracker.update(vec![([10.0, 10.0, 50.0, 50.0], 0.85, 1)]);
         assert_eq!(out2.len(), 2);
         assert_eq!(out2[0].class_id, 1);
+        assert_eq!(out2[0].state, TrackState::Tracked);
+        assert_eq!(out2[1].class_id, 0);
+        assert_eq!(out2[1].state, TrackState::Lost);
     }
 }
