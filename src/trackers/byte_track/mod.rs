@@ -594,4 +594,28 @@ mod tests {
         assert_eq!(output2.len(), 1, "Expected 1 track, got {}", output2.len());
         assert_eq!(output2[0].track_id, id);
     }
+
+    #[test]
+    fn test_bytetrack_different_classes_sent_together() {
+        let mut tracker = ByteTrack::new(0.6, 30, 0.8, 0.6);
+        let out = tracker.update(vec![
+            ([10.0, 10.0, 50.0, 50.0], 0.9, 0),
+            ([10.0, 10.0, 50.0, 50.0], 0.85, 1),
+        ]);
+        assert_eq!(out.len(), 2);
+        assert_eq!(out[0].class_id, 0);
+        assert_eq!(out[1].class_id, 1);
+    }
+
+    #[test]
+    fn test_bytetrack_different_classes_sent_separately() {
+        let mut tracker = ByteTrack::new(0.6, 30, 0.8, 0.6);
+        let out1 = tracker.update(vec![([10.0, 10.0, 50.0, 50.0], 0.9, 0)]);
+        assert_eq!(out1.len(), 1);
+        assert_eq!(out1[0].class_id, 0);
+
+        let out2 = tracker.update(vec![([10.0, 10.0, 50.0, 50.0], 0.85, 1)]);
+        assert_eq!(out2.len(), 2);
+        assert_eq!(out2[0].class_id, 1);
+    }
 }
