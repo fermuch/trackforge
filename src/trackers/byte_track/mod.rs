@@ -614,6 +614,8 @@ mod tests {
         assert_eq!(out[0].state, TrackState::Tracked);
         assert_eq!(out[1].class_id, 1);
         assert_eq!(out[1].state, TrackState::Tracked);
+
+        assert_ne!(out[0].track_id, out[1].track_id);
     }
 
     #[test]
@@ -629,5 +631,8 @@ mod tests {
         assert_eq!(out2[0].state, TrackState::Tracked);
         assert_eq!(out2[1].class_id, 0);
         assert_eq!(out2[1].state, TrackState::Lost);
+
+        assert_ne!(out1[0].track_id, out2[0].track_id);
+        assert_ne!(out2[0].track_id, out2[1].track_id);
     }
 }
